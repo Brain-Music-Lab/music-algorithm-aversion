@@ -1,5 +1,5 @@
 import os
-import pandas as pd
+import csv
 import nltk
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
@@ -20,7 +20,7 @@ def process_text(text):
     - Remove stopwords
     - Lemmatize
     - Remove duplicates and short words
-    - Return comma-separated string
+    - Return a list of tokens
     """
     # Tokenize the text
     tokens = word_tokenize(text.lower())
@@ -41,15 +41,16 @@ def process_text(text):
     tokens = list(set(tokens))
     tokens = [word for word in tokens if word and len(word) > 2]
 
-    # Return as comma-separated string
-    return ','.join(tokens)
+    # Return as a list instead of a comma-separated string
+    return tokens
 
 def main():
-    # Directory containing the .txt files
-    data_dir = 'CleanedTranscription/'
+    # Directory containing the .txt files (change for your needs)
+    data_dir = '/Users/thedrive/Documents/ProgramProjects/algorithm-aversion/Cleaned text data/'
 
-    # List to hold the data
-    data = []
+    # Lists to hold the row data
+    data_with_labels = []
+    data_no_labels = []
 
     # Process each .txt file
     for file in os.listdir(data_dir):
@@ -59,7 +60,7 @@ def main():
                 with open(file_path, 'r', encoding='utf-8') as f:
                     text = f.read()
 
-                # Process the text
+                # Process the text (now returns a list)
                 transaction = process_text(text)
 
                 # Determine label from filename
@@ -76,35 +77,32 @@ def main():
                     print(f"Warning: Empty transaction for file {file}. Skipping.")
                     continue
 
-                data.append({'label': label, 'transaction': transaction})
+                # Append to our data lists
+                # For labelled data, insert the label at the beginning of the list
+                data_with_labels.append([label] + transaction)
+                
+                # For unlabelled data, just use the transaction list
+                data_no_labels.append(transaction)
 
             except Exception as e:
                 print(f"Error processing file {file}: {e}")
                 continue
 
-    # Create DataFrame
-    df = pd.DataFrame(data)
-
-    if df.empty:
+    if not data_no_labels:
         print("No data processed. Exiting.")
         return
 
-    # Create version with labels appended to the beginning of each row
-    df_with_labels = pd.DataFrame({
-        'transaction': df['label'] + ',' + df['transaction']
-    })
+    # Save to CSV files using the csv module
+    with open('cleaned_data_with_labels.csv', 'w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        writer.writerows(data_with_labels)
 
-    # Create version without labels
-    df_without_labels = pd.DataFrame({
-        'transaction': df['transaction']
-    })
-
-    # Save to CSV files
-    df_with_labels.to_csv('cleaned_data_with_labels.csv', index=False)
-    df_without_labels.to_csv('cleaned_data_no_labels.csv', index=False)
+    with open('cleaned_data_no_labels.csv', 'w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        writer.writerows(data_no_labels)
 
     print("Data processing complete.")
-    print(f"Processed {len(df)} documents.")
+    print(f"Processed {len(data_no_labels)} documents.")
     print("Created 'cleaned_data_with_labels.csv' and 'cleaned_data_no_labels.csv'.")
 
 if __name__ == '__main__':
