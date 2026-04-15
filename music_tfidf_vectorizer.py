@@ -8,6 +8,7 @@ from nltk.tokenize import word_tokenize
 
 # nltk download setup
 nltk.download('punkt')
+nltk.download('punkt_tab')
 nltk.download('stopwords')
 nltk.download('wordnet')
 
@@ -35,7 +36,7 @@ def preprocess_text(text):
     return " ".join(processed_tokens)
 
 # Define directory where txt files are located and set up lists for reading
-folder_path = 'path/to/files' # TODO: REPLACE!!!
+folder_path = './test_files'
 documents = []
 filenames = []
 
