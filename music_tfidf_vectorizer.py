@@ -81,7 +81,7 @@ df.insert(0, 'file_category_label', labels)
 
 # Save as CSV
 output_csv_path = 'tfidf_output.csv'
-df.to_csv(output_csv_path)
+df.to_csv(output_csv_path, index=False)
 
 print(f"Success! Processed {len(filenames)} files.")
 print(f"Data saved to {output_csv_path}")
