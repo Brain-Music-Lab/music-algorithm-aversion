@@ -77,7 +77,7 @@ for name in filenames:
     else:
         labels.append('UNLABELED')
 
-df.insert(0, 'label', labels)
+df.insert(0, 'file_category_label', labels)
 
 # Save as CSV
 output_csv_path = 'tfidf_output.csv'
