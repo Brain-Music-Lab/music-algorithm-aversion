@@ -5,6 +5,10 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier, plot_tree
+from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, ConfusionMatrixDisplay
+import matplotlib.pyplot as plt
 
 # nltk download setup
 nltk.download('punkt')
@@ -15,6 +19,10 @@ nltk.download('wordnet')
 # Initalize lemmatizer and stop word list
 lemmatizer = WordNetLemmatizer()
 stop_words = set(stopwords.words('english'))
+additional_filler_words = ["also", "call", "called", "could", "else", "got", "gotcha", "hey", "lot", "ohh", "side", "totally", "kind", "would", "yeah", "really", "like", "well", "definitely", "sometimes", "think", "stuff", "could", "know", "pretty"]
+stop_words.update(additional_filler_words)
+removal_words = ["sharing", "computer", "algorithm"]
+stop_words.update(removal_words)
 
 def preprocess_text(text):
     """
@@ -87,3 +95,50 @@ print(f"Success! Processed {len(filenames)} files.")
 print(f"Data saved to {output_csv_path}")
 print("\nPreview of DataFrame:")
 print(df.head())
+
+# Create and clean decision tree dataframe
+ml_df = df[df['file_category_label'] != 'UNLABELED']
+
+X = ml_df.drop('file_category_label', axis=1)
+y = ml_df['file_category_label']
+
+# Train Test split and train classifier
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2) #random_state=42)
+
+clf = DecisionTreeClassifier() #random_state=42)
+clf.fit(X_train, y_train)
+
+# Predict and evaluate model accuracy
+y_pred = clf.predict(X_test)
+
+print("\n--- Model Evaluation ---")
+print(classification_report(y_test, y_pred))
+
+
+# Plot Tree
+plt.figure(figsize=(15, 10))
+plot_tree(
+    clf, 
+    feature_names=X.columns, 
+    class_names=clf.classes_, 
+    filled=True, 
+    rounded=True,
+    max_depth=3, 
+    fontsize=10
+)
+
+plt.title("Decision Tree Visualization")
+plt.tight_layout()
+plt.show()
+
+
+# Plot Confusion Matrix
+cm = confusion_matrix(y_test, y_pred, labels=clf.classes_, normalize='true')
+
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=clf.classes_)
+
+fig, ax = plt.subplots(figsize=(8, 6))
+disp.plot(cmap=plt.cm.Blues, ax=ax, values_format='.1%')
+
+plt.title("Confusion Matrix")
+plt.show()
