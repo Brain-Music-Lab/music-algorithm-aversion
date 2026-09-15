@@ -1,0 +1,17 @@
+data
+# History files
+.Rhistory
+.RData
+.Ruserdata
+
+# Filtered data (if you are doing iterative cleaning in Python)
+*.csv
+*.xlsx
+*.log
+
+# System files
+.DS_Store
+Thumbs.db
+
+# RStudio files
+.Rproj.user/
