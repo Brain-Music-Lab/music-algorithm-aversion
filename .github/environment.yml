@@ -7,7 +7,7 @@ dependencies:
   - nltk>=3.10.3
   - numpy>=2.5.3
   - pandas>=3.0.5
-  - scikit_learn>=1.9.1
+  - scikit_learn>=1.9.0
   - scipy>=1.18.1
   - seaborn>=0.13.2
-  - spacy>=3.8.16
+  - spacy>=3.8.15
