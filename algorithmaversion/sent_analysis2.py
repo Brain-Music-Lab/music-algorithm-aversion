@@ -32,9 +32,8 @@ from itertools import combinations
 from pathlib import Path
 from typing import Literal
 
-import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
+import pandas as pd
 import seaborn as sns
 from scipy import stats
 
@@ -47,15 +46,16 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 # All settings live here. Edit this block before running — no need to touch
 # the functions below. Each option is explained inline.
 
+
 class PipelineConfig:
     # ── Paths ─────────────────────────────────────────────────────────────────
     # Resolved relative to this script's own location, not the working
     # directory — so it runs the same whether launched from a terminal, the
     # VS Code Run button, or any other cwd. Only the two folder names below
     # need updating for a new run; leave _base_dir alone.
-    _base_dir  = Path(__file__).resolve().parent
-    data_dir   = _base_dir / "All-transcriptions9.13.26"   # Root folder containing your topic subfolders
-    output_dir = _base_dir / "2026-13-09-exports"          # Where all CSV, image, and report files go
+    _base_dir = Path(__file__).resolve().parent
+    data_dir = _base_dir / "All-transcriptions9.13.26"  # Root folder containing your topic subfolders
+    output_dir = _base_dir / "2026-13-09-exports"  # Where all CSV, image, and report files go
 
     # ── Stage 2: Sentence segmentation ───────────────────────────────────────
     # "spacy"  → recommended. Handles informal speech, ellipses, and missing
@@ -104,9 +104,9 @@ class PipelineConfig:
     vader_neg_threshold: float = -0.05
 
     # ── Stage 5: Outputs ─────────────────────────────────────────────────────
-    fig_dpi: int = 150     # Use 300 for publication-quality figures
-    run_stats: bool = True # Set False to skip statistical tests
-    alpha: float = 0.05    # Significance level for all tests
+    fig_dpi: int = 150  # Use 300 for publication-quality figures
+    run_stats: bool = True  # Set False to skip statistical tests
+    alpha: float = 0.05  # Significance level for all tests
 
 
 CONFIG = PipelineConfig()
@@ -115,6 +115,7 @@ CONFIG = PipelineConfig()
 # =============================================================================
 # STAGE 1 — DATA INGESTION
 # =============================================================================
+
 
 def ingest_data(config: PipelineConfig) -> pd.DataFrame:
     """
@@ -138,9 +139,9 @@ def ingest_data(config: PipelineConfig) -> pd.DataFrame:
         topic_dirs to only those names if you want to run the pipeline on a
         subset of your folders.
     """
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("STAGE 1: Data ingestion")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     data_path = config.data_dir
     if not data_path.exists():
@@ -151,10 +152,7 @@ def ingest_data(config: PipelineConfig) -> pd.DataFrame:
 
     topic_dirs = sorted([d for d in data_path.iterdir() if d.is_dir()])
     if not topic_dirs:
-        raise ValueError(
-            f"No subdirectories found in '{data_path}'.\n"
-            f"Each topic must have its own subfolder."
-        )
+        raise ValueError(f"No subdirectories found in '{data_path}'.\nEach topic must have its own subfolder.")
 
     print(f"Root: {data_path.resolve()}")
     print(f"Topic folders found: {len(topic_dirs)}")
@@ -181,12 +179,14 @@ def ingest_data(config: PipelineConfig) -> pd.DataFrame:
                 print(f"  [WARN] Empty file: '{txt_file.name}', skipping.")
                 continue
 
-            records.append({
-                "participant_id": txt_file.stem.split("_")[0],  # e.g. "0M3LDX" from "0M3LDX_algorithms.txt"
-                "theme":          theme,
-                "raw_text":       raw,
-                "file_path":      str(txt_file),
-            })
+            records.append(
+                {
+                    "participant_id": txt_file.stem.split("_")[0],  # e.g. "0M3LDX" from "0M3LDX_algorithms.txt"
+                    "theme": theme,
+                    "raw_text": raw,
+                    "file_path": str(txt_file),
+                }
+            )
 
     if not records:
         raise ValueError("No valid .txt files found. Check your data directory.")
@@ -201,6 +201,7 @@ def ingest_data(config: PipelineConfig) -> pd.DataFrame:
 # =============================================================================
 # STAGE 2 — SENTENCE SEGMENTATION
 # =============================================================================
+
 
 def segment_sentences(df: pd.DataFrame, config: PipelineConfig) -> pd.DataFrame:
     """
@@ -228,9 +229,9 @@ def segment_sentences(df: pd.DataFrame, config: PipelineConfig) -> pd.DataFrame:
         Run `pip install contractions` and expand contractions before scoring
         ("don't" → "do not") for slightly improved VADER accuracy.
     """
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"STAGE 2: Sentence segmentation  [{config.segmenter}]")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     if config.segmenter == "spacy":
         return _segment_spacy(df, config)
@@ -279,12 +280,12 @@ def _segment_spacy(df: pd.DataFrame, config: PipelineConfig) -> pd.DataFrame:
     """
     try:
         import spacy
+
         # Load model with only the sentencizer — avoids loading NER, parser, etc.
         nlp = spacy.load(config.spacy_model, enable=["sentencizer"])
     except OSError:
         raise OSError(
-            f"spaCy model '{config.spacy_model}' not found.\n"
-            f"Fix: python -m spacy download {config.spacy_model}"
+            f"spaCy model '{config.spacy_model}' not found.\nFix: python -m spacy download {config.spacy_model}"
         )
 
     if "sentencizer" not in nlp.pipe_names:
@@ -296,16 +297,18 @@ def _segment_spacy(df: pd.DataFrame, config: PipelineConfig) -> pd.DataFrame:
     # nlp.pipe() is batched and much faster than calling nlp() in a loop
     docs = list(nlp.pipe(texts, batch_size=50))
 
-    for doc, (_, row) in zip(docs, df.iterrows()):
+    for doc, (_, row) in zip(docs, df.iterrows(), strict=False):
         for idx, sent in enumerate(doc.sents):
             cleaned = _clean_sentence(sent.text)
             if len(cleaned) >= config.min_sentence_chars:
-                records.append({
-                    "participant_id": row["participant_id"],
-                    "theme":          row["theme"],
-                    "sentence_idx":   idx,
-                    "sentence":       cleaned,
-                })
+                records.append(
+                    {
+                        "participant_id": row["participant_id"],
+                        "theme": row["theme"],
+                        "sentence_idx": idx,
+                        "sentence": cleaned,
+                    }
+                )
 
     return _finalize_sentences(records, config)
 
@@ -318,6 +321,7 @@ def _segment_nltk(df: pd.DataFrame, config: PipelineConfig) -> pd.DataFrame:
     missing sentence-ending punctuation or non-standard abbreviations.
     """
     import nltk
+
     try:
         nltk.data.find("tokenizers/punkt")
     except LookupError:
@@ -331,12 +335,14 @@ def _segment_nltk(df: pd.DataFrame, config: PipelineConfig) -> pd.DataFrame:
         for idx, sent in enumerate(sent_tokenize(row["raw_text"])):
             cleaned = _clean_sentence(sent)
             if len(cleaned) >= config.min_sentence_chars:
-                records.append({
-                    "participant_id": row["participant_id"],
-                    "theme":          row["theme"],
-                    "sentence_idx":   idx,
-                    "sentence":       cleaned,
-                })
+                records.append(
+                    {
+                        "participant_id": row["participant_id"],
+                        "theme": row["theme"],
+                        "sentence_idx": idx,
+                        "sentence": cleaned,
+                    }
+                )
 
     return _finalize_sentences(records, config)
 
@@ -352,6 +358,7 @@ def _finalize_sentences(records: list, config: PipelineConfig) -> pd.DataFrame:
 # =============================================================================
 # STAGE 3 — SENTIMENT SCORING
 # =============================================================================
+
 
 def score_sentiment(df: pd.DataFrame, config: PipelineConfig) -> pd.DataFrame:
     """
@@ -377,9 +384,9 @@ def score_sentiment(df: pd.DataFrame, config: PipelineConfig) -> pd.DataFrame:
         compute Cohen's Kappa against the model labels. Report this as your
         validation metric in the paper.
     """
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"STAGE 3: Sentiment scoring  [{config.scorer}]")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     if config.scorer == "vader":
         return _score_vader(df, config)
@@ -411,8 +418,8 @@ def _score_vader(df: pd.DataFrame, config: PipelineConfig) -> pd.DataFrame:
         terms VADER misclassifies (e.g. clinical terms, domain jargon),
         add them via: sia.lexicon.update({"your_word": 2.5})
     """
-    from nltk.sentiment.vader import SentimentIntensityAnalyzer
     import nltk
+    from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
     try:
         nltk.data.find("sentiment/vader_lexicon.zip")
@@ -427,7 +434,7 @@ def _score_vader(df: pd.DataFrame, config: PipelineConfig) -> pd.DataFrame:
     scores, labels, raw_pos, raw_neu, raw_neg = [], [], [], [], []
 
     for sentence in df["sentence"]:
-        result   = sia.polarity_scores(sentence)
+        result = sia.polarity_scores(sentence)
         compound = result["compound"]
 
         # Assign label using configurable thresholds (see PipelineConfig)
@@ -467,7 +474,8 @@ def _score_roberta(df: pd.DataFrame, config: PipelineConfig) -> pd.DataFrame:
     We convert to a signed score for direct comparability with VADER:
         signed_score = P(positive) − P(negative)
 
-    Notes:
+    Notes
+    -----
         • Sentences > 512 tokens are truncated (rare in interview data).
         • First run downloads ~500 MB model to HuggingFace cache.
         • With CUDA GPU: ~10–50× faster than CPU.
@@ -499,8 +507,8 @@ def _score_roberta(df: pd.DataFrame, config: PipelineConfig) -> pd.DataFrame:
     classifier = hf_pipeline(
         "text-classification",
         model=config.roberta_model,
-        top_k=None,        # Return all three class probabilities
-        truncation=True,   # Silently truncate sentences > 512 tokens
+        top_k=None,  # Return all three class probabilities
+        truncation=True,  # Silently truncate sentences > 512 tokens
         max_length=512,
         device=device,
     )
@@ -523,7 +531,7 @@ def _score_roberta(df: pd.DataFrame, config: PipelineConfig) -> pd.DataFrame:
         # others use negative/neutral/positive
         probs = {item["label"].lower(): item["score"] for item in result}
         neg = probs.get("negative", probs.get("label_0", 0.0))
-        neu = probs.get("neutral",  probs.get("label_1", 0.0))
+        neu = probs.get("neutral", probs.get("label_1", 0.0))
         pos = probs.get("positive", probs.get("label_2", 0.0))
 
         # Signed compound-style score for consistency with VADER output
@@ -549,13 +557,13 @@ def _score_roberta(df: pd.DataFrame, config: PipelineConfig) -> pd.DataFrame:
 def _report_scores(df: pd.DataFrame) -> pd.DataFrame:
     label_counts = df["sentiment_label"].value_counts()
     total = len(df)
-    print(f"\n  Scoring complete.")
-    print(f"  Label distribution:")
+    print("\n  Scoring complete.")
+    print("  Label distribution:")
     for label in ["positive", "neutral", "negative"]:
-        n   = label_counts.get(label, 0)
+        n = label_counts.get(label, 0)
         pct = n / total * 100
         print(f"    {label:<10} {n:>5}  ({pct:.1f}%)")
-    print(f"\n  Score statistics:")
+    print("\n  Score statistics:")
     print(f"    Mean   {df['sentiment_score'].mean():>+.3f}")
     print(f"    Std    {df['sentiment_score'].std():>.3f}")
     print(f"    Min    {df['sentiment_score'].min():>+.3f}")
@@ -566,6 +574,7 @@ def _report_scores(df: pd.DataFrame) -> pd.DataFrame:
 # =============================================================================
 # STAGE 4 — AGGREGATION
 # =============================================================================
+
 
 def aggregate(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
@@ -600,35 +609,37 @@ def aggregate(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
         Add a sentence_position column (0.0 to 1.0) and compute rolling
         mean sentiment to capture how feelings evolve across an interview.
     """
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("STAGE 4: Aggregation")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     def summarize(group):
         counts = group["sentiment_label"].value_counts(normalize=True) * 100
-        return pd.Series({
-            "n_sentences":    len(group),
-            "n_participants": group["participant_id"].nunique() if "participant_id" in group.columns else 1,
-            "mean_score":     group["sentiment_score"].mean(),
-            "median_score":   group["sentiment_score"].median(),
-            "std_score":      group["sentiment_score"].std(),
-            "pct_positive":   counts.get("positive", 0.0),
-            "pct_neutral":    counts.get("neutral",  0.0),
-            "pct_negative":   counts.get("negative", 0.0),
-        })
+        return pd.Series(
+            {
+                "n_sentences": len(group),
+                "n_participants": group["participant_id"].nunique() if "participant_id" in group.columns else 1,
+                "mean_score": group["sentiment_score"].mean(),
+                "median_score": group["sentiment_score"].median(),
+                "std_score": group["sentiment_score"].std(),
+                "pct_positive": counts.get("positive", 0.0),
+                "pct_neutral": counts.get("neutral", 0.0),
+                "pct_negative": counts.get("negative", 0.0),
+            }
+        )
 
     theme_agg = (
         df.groupby("theme")
-          .apply(summarize, include_groups=False)
-          .reset_index()
-          .sort_values("mean_score", ascending=False)
+        .apply(summarize, include_groups=False)
+        .reset_index()
+        .sort_values("mean_score", ascending=False)
     )
 
     participant_agg = (
         df.groupby(["participant_id", "theme"])
-          .apply(summarize, include_groups=False)
-          .reset_index()
-          .sort_values(["theme", "mean_score"], ascending=[True, False])
+        .apply(summarize, include_groups=False)
+        .reset_index()
+        .sort_values(["theme", "mean_score"], ascending=[True, False])
     )
 
     print("\nTheme-level summary (sorted by mean score):")
@@ -643,11 +654,12 @@ def aggregate(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
 # STAGE 5A — CSV OUTPUTS
 # =============================================================================
 
+
 def save_outputs(
-    df_sentences:    pd.DataFrame,
-    theme_agg:       pd.DataFrame,
+    df_sentences: pd.DataFrame,
+    theme_agg: pd.DataFrame,
     participant_agg: pd.DataFrame,
-    config:          PipelineConfig,
+    config: PipelineConfig,
 ) -> None:
     """
     Write all data files to config.output_dir.
@@ -679,9 +691,9 @@ def save_outputs(
     theme_agg.to_csv(out / "theme_aggregates.csv", index=False)
     participant_agg.to_csv(out / "participant_profiles.csv", index=False)
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"STAGE 5A: CSV outputs → {out.resolve()}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"  sentences_scored.csv      ({len(df_sentences)} rows)")
     print(f"  theme_aggregates.csv      ({len(theme_agg)} rows)")
     print(f"  participant_profiles.csv  ({len(participant_agg)} rows)")
@@ -691,11 +703,12 @@ def save_outputs(
 # STAGE 5B — VISUALIZATIONS
 # =============================================================================
 
+
 def create_visualizations(
-    df_sentences:    pd.DataFrame,
-    theme_agg:       pd.DataFrame,
+    df_sentences: pd.DataFrame,
+    theme_agg: pd.DataFrame,
     participant_agg: pd.DataFrame,
-    config:          PipelineConfig,
+    config: PipelineConfig,
 ) -> None:
     """
     Generate and save four publication-ready figures.
@@ -728,9 +741,9 @@ def create_visualizations(
                             box=True, points="all")
             fig.write_html(out / "violin_plots.html")
     """
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("STAGE 5B: Visualizations")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     out = config.output_dir
     themes = sorted(df_sentences["theme"].unique())
@@ -738,22 +751,27 @@ def create_visualizations(
     fig_w = max(8, n_themes * 1.6)
 
     sns.set_style("whitegrid")
-    plt.rcParams.update({
-        "font.family":       "sans-serif",
-        "axes.spines.top":   False,
-        "axes.spines.right": False,
-        "axes.grid":         True,
-        "grid.alpha":        0.4,
-    })
+    plt.rcParams.update(
+        {
+            "font.family": "sans-serif",
+            "axes.spines.top": False,
+            "axes.spines.right": False,
+            "axes.grid": True,
+            "grid.alpha": 0.4,
+        }
+    )
 
     # ── Figure 1: Grouped bar chart ──────────────────────────────────────────
     fig, ax = plt.subplots(figsize=(fig_w, 5))
 
     bar_data = theme_agg.set_index("theme")[["pct_positive", "pct_neutral", "pct_negative"]]
     bar_data.plot(
-        kind="bar", ax=ax,
+        kind="bar",
+        ax=ax,
         color=["#4caf50", "#9e9e9e", "#f44336"],
-        width=0.7, edgecolor="white", linewidth=0.5,
+        width=0.7,
+        edgecolor="white",
+        linewidth=0.5,
     )
     ax.set_title("Sentiment label distribution by theme", fontsize=14, pad=12)
     ax.set_xlabel("")
@@ -768,19 +786,27 @@ def create_visualizations(
 
     # ── Figure 2: Participant × theme heatmap ────────────────────────────────
     pivot = participant_agg.pivot_table(
-        index="participant_id", columns="theme",
-        values="mean_score", aggfunc="mean",
+        index="participant_id",
+        columns="theme",
+        values="mean_score",
+        aggfunc="mean",
     )
 
     if pivot.shape[0] > 1 and pivot.shape[1] > 1:
         h = max(6, len(pivot) * 0.35)
         fig, ax = plt.subplots(figsize=(fig_w, h))
         sns.heatmap(
-            pivot, ax=ax,
-            cmap="RdYlGn", center=0, vmin=-1, vmax=1,
-            linewidths=0.4, linecolor="white",
+            pivot,
+            ax=ax,
+            cmap="RdYlGn",
+            center=0,
+            vmin=-1,
+            vmax=1,
+            linewidths=0.4,
+            linecolor="white",
             # Show numeric annotations only when the grid isn't too crowded
-            annot=(len(pivot) <= 30), fmt=".2f",
+            annot=(len(pivot) <= 30),
+            fmt=".2f",
             cbar_kws={"label": "Mean sentiment score", "shrink": 0.8},
         )
         ax.set_title("Mean sentiment score: participant × theme", fontsize=14, pad=12)
@@ -798,16 +824,27 @@ def create_visualizations(
     # ── Figure 3: Violin + strip plot ────────────────────────────────────────
     fig, ax = plt.subplots(figsize=(fig_w, 5))
     sns.violinplot(
-        data=df_sentences, x="theme", y="sentiment_score",
-        ax=ax, palette="RdYlGn", inner="quartile", cut=0,
+        data=df_sentences,
+        x="theme",
+        y="sentiment_score",
+        ax=ax,
+        palette="RdYlGn",
+        inner="quartile",
+        cut=0,
         order=themes,
     )
     # Overlay individual points — shows actual data density alongside the KDE.
     # ➜ OPTIMIZATION: set alpha lower (0.05) or remove stripplot entirely if
     #   N is large (>500 sentences per theme) to avoid overplotting.
     sns.stripplot(
-        data=df_sentences, x="theme", y="sentiment_score",
-        ax=ax, color="black", alpha=0.15, size=2.5, jitter=True,
+        data=df_sentences,
+        x="theme",
+        y="sentiment_score",
+        ax=ax,
+        color="black",
+        alpha=0.15,
+        size=2.5,
+        jitter=True,
         order=themes,
     )
     ax.axhline(0, color="black", linewidth=0.8, linestyle="--", alpha=0.5)
@@ -844,6 +881,7 @@ def create_visualizations(
 # =============================================================================
 # STAGE 5C — STATISTICAL TESTS
 # =============================================================================
+
 
 def run_statistical_tests(df_sentences: pd.DataFrame, config: PipelineConfig) -> None:
     """
@@ -886,15 +924,12 @@ def run_statistical_tests(df_sentences: pd.DataFrame, config: PipelineConfig) ->
         If you have a covariate column (e.g. "gender"), run a Mann-Whitney
         between groups within each theme and report effect sizes.
     """
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("STAGE 5C: Statistical tests")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     themes = sorted(df_sentences["theme"].unique())
-    groups = {
-        t: df_sentences[df_sentences["theme"] == t]["sentiment_score"].values
-        for t in themes
-    }
+    groups = {t: df_sentences[df_sentences["theme"] == t]["sentiment_score"].values for t in themes}
 
     # Drop themes with fewer than 3 sentences — not enough for reliable testing
     valid = {t: g for t, g in groups.items() if len(g) >= 3}
@@ -943,10 +978,7 @@ def run_statistical_tests(df_sentences: pd.DataFrame, config: PipelineConfig) ->
         r = 1 - (2 * u_stat) / (len(g1) * len(g2))
 
         sig = "  *  ← significant" if p_val < bonferroni_alpha else ""
-        lines.append(
-            f"  {t1:28s} vs {t2:28s} | "
-            f"p={p_val:.4f}  r={r:+.3f}{sig}"
-        )
+        lines.append(f"  {t1:28s} vs {t2:28s} | p={p_val:.4f}  r={r:+.3f}{sig}")
 
     lines += [
         "",
@@ -960,12 +992,13 @@ def run_statistical_tests(df_sentences: pd.DataFrame, config: PipelineConfig) ->
 
     report_path = config.output_dir / "stats_report.txt"
     report_path.write_text(report, encoding="utf-8")
-    print(f"\n  Full report saved: stats_report.txt")
+    print("\n  Full report saved: stats_report.txt")
 
 
 # =============================================================================
 # MAIN
 # =============================================================================
+
 
 def main():
     """
@@ -1008,10 +1041,10 @@ def main():
     print(f"  Data dir  : {CONFIG.data_dir.resolve()}")
     print("=" * 60)
 
-    df_raw            = ingest_data(CONFIG)
-    df_sentences      = segment_sentences(df_raw, CONFIG)
-    df_scored         = score_sentiment(df_sentences, CONFIG)
-    theme_agg, p_agg  = aggregate(df_scored)
+    df_raw = ingest_data(CONFIG)
+    df_sentences = segment_sentences(df_raw, CONFIG)
+    df_scored = score_sentiment(df_sentences, CONFIG)
+    theme_agg, p_agg = aggregate(df_scored)
 
     save_outputs(df_scored, theme_agg, p_agg, CONFIG)
     create_visualizations(df_scored, theme_agg, p_agg, CONFIG)
@@ -1019,10 +1052,10 @@ def main():
     if CONFIG.run_stats:
         run_statistical_tests(df_scored, CONFIG)
 
-    print(f"\n{'='*60}")
-    print(f"  Pipeline complete.")
+    print(f"\n{'=' * 60}")
+    print("  Pipeline complete.")
     print(f"  All outputs → {CONFIG.output_dir.resolve()}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
 
 if __name__ == "__main__":

@@ -24,16 +24,16 @@ Usage:
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
-
 
 # =============================================================================
 # CONFIGURATION
 # =============================================================================
+
 
 @dataclass
 class ComparisonConfig:
@@ -43,7 +43,7 @@ class ComparisonConfig:
     # absolute path — portable across machines/usernames, and immune to
     # working-directory differences. Only the exports folder name needs
     # updating for a new run.
-    _base_dir   = Path(__file__).resolve().parent
+    _base_dir = Path(__file__).resolve().parent
     profiles_csv: Path = _base_dir / "2026-13-09-exports" / "participant_profiles.csv"
     output_dir: Path = _base_dir / "2026-13-09-exports" / "context_comparison"
 
@@ -51,15 +51,17 @@ class ComparisonConfig:
     # Keys MUST exactly match the theme strings in participant_profiles.csv —
     # confirmed against the actual run: Algorithms, Computer Music,
     # Music Sharing, Peer Music.
-    condition_map: dict = field(default_factory=lambda: {
-        "Computer Music": ("Study", "Algorithm"),
-        "Peer Music":     ("Study", "Peer"),
-        "Algorithms":     ("Life",  "Algorithm"),
-        "Music Sharing":  ("Life",  "Peer"),
-    })
+    condition_map: dict = field(
+        default_factory=lambda: {
+            "Computer Music": ("Study", "Algorithm"),
+            "Peer Music": ("Study", "Peer"),
+            "Algorithms": ("Life", "Algorithm"),
+            "Music Sharing": ("Life", "Peer"),
+        }
+    )
 
     alpha: float = 0.05
-    n_bootstrap: int = 2000   # resamples for interaction-plot CIs
+    n_bootstrap: int = 2000  # resamples for interaction-plot CIs
     fig_dpi: int = 150
 
 
@@ -70,6 +72,7 @@ CONFIG = ComparisonConfig()
 # STAGE 1 — LOAD + MAP
 # =============================================================================
 
+
 def load_profiles(config: ComparisonConfig) -> pd.DataFrame:
     """
     Read participant_profiles.csv produced by sent-analysis2.0.py.
@@ -78,9 +81,9 @@ def load_profiles(config: ComparisonConfig) -> pd.DataFrame:
     -------
     DataFrame with (at least): participant_id, theme, mean_score, n_sentences
     """
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("STAGE 1: Load participant profiles")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     path = config.profiles_csv
     if not path.exists():
@@ -110,9 +113,9 @@ def map_conditions(df: pd.DataFrame, config: ComparisonConfig) -> pd.DataFrame:
     Rows whose theme isn't a key in condition_map are dropped — printed
     explicitly so nothing disappears silently.
     """
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("STAGE 1B: Map themes onto Context x Source")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     known = set(config.condition_map.keys())
     present = set(df["theme"].unique())
@@ -120,23 +123,22 @@ def map_conditions(df: pd.DataFrame, config: ComparisonConfig) -> pd.DataFrame:
 
     if unmapped:
         dropped_rows = df[df["theme"].isin(unmapped)]
-        print(f"  [WARN] Dropping {len(dropped_rows)} rows from unmapped theme(s): "
-              f"{sorted(unmapped)}")
-        print(f"  [WARN] If any of these SHOULD be one of the four conditions, "
-              f"fix CONFIG.condition_map — theme strings must match exactly.")
+        print(f"  [WARN] Dropping {len(dropped_rows)} rows from unmapped theme(s): {sorted(unmapped)}")
+        print(
+            "  [WARN] If any of these SHOULD be one of the four conditions, "
+            "fix CONFIG.condition_map — theme strings must match exactly."
+        )
 
     missing_map_keys = known - present
     if missing_map_keys:
-        print(f"  [WARN] condition_map expects theme(s) not found in the data: "
-              f"{sorted(missing_map_keys)}")
+        print(f"  [WARN] condition_map expects theme(s) not found in the data: {sorted(missing_map_keys)}")
 
     mapped = df[df["theme"].isin(known)].copy()
     mapped["context"] = mapped["theme"].map(lambda t: config.condition_map[t][0])
-    mapped["source"]  = mapped["theme"].map(lambda t: config.condition_map[t][1])
+    mapped["source"] = mapped["theme"].map(lambda t: config.condition_map[t][1])
 
     print(f"\n  Rows kept: {len(mapped)} / {len(df)}")
-    print(mapped.groupby(["context", "source"])["participant_id"].nunique()
-          .rename("n_participants").to_string())
+    print(mapped.groupby(["context", "source"])["participant_id"].nunique().rename("n_participants").to_string())
 
     return mapped
 
@@ -144,6 +146,7 @@ def map_conditions(df: pd.DataFrame, config: ComparisonConfig) -> pd.DataFrame:
 # =============================================================================
 # STAGE 2 — PER-PARTICIPANT GAPS
 # =============================================================================
+
 
 def compute_gaps(mapped: pd.DataFrame) -> pd.DataFrame:
     """
@@ -160,9 +163,9 @@ def compute_gaps(mapped: pd.DataFrame) -> pd.DataFrame:
     -------
     DataFrame: participant_id, context, gap, n_sentences_algorithm, n_sentences_peer
     """
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("STAGE 2: Compute per-participant Algorithm-minus-Peer gaps")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     pivot = mapped.pivot_table(
         index=["participant_id", "context"],
@@ -174,15 +177,16 @@ def compute_gaps(mapped: pd.DataFrame) -> pd.DataFrame:
     has_both = pivot["mean_score"][["Algorithm", "Peer"]].notna().all(axis=1)
     pivot = pivot[has_both]
 
-    gaps = pd.DataFrame({
-        "gap": pivot["mean_score"]["Algorithm"] - pivot["mean_score"]["Peer"],
-        "n_sentences_algorithm": pivot["n_sentences"]["Algorithm"],
-        "n_sentences_peer": pivot["n_sentences"]["Peer"],
-    }).reset_index()
+    gaps = pd.DataFrame(
+        {
+            "gap": pivot["mean_score"]["Algorithm"] - pivot["mean_score"]["Peer"],
+            "n_sentences_algorithm": pivot["n_sentences"]["Algorithm"],
+            "n_sentences_peer": pivot["n_sentences"]["Peer"],
+        }
+    ).reset_index()
 
     print(f"\n  Gaps computed: {len(gaps)} (participant x context) pairs")
-    print(gaps.groupby("context")["gap"]
-          .agg(n="count", mean="mean", median="median").to_string())
+    print(gaps.groupby("context")["gap"].agg(n="count", mean="mean", median="median").to_string())
 
     return gaps
 
@@ -196,9 +200,9 @@ def build_crossed_subset(gaps: pd.DataFrame) -> pd.DataFrame:
     -------
     DataFrame: participant_id, study_gap, life_gap
     """
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("STAGE 2B: Build fully-crossed subset (for paired test + slopegraph)")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     wide = gaps.pivot(index="participant_id", columns="context", values="gap")
     crossed = wide.dropna(subset=["Study", "Life"]).reset_index()
@@ -216,6 +220,7 @@ def build_crossed_subset(gaps: pd.DataFrame) -> pd.DataFrame:
 # =============================================================================
 # STAGE 3 — STATISTICAL TESTS
 # =============================================================================
+
 
 def run_tests(gaps: pd.DataFrame, crossed: pd.DataFrame, config: ComparisonConfig) -> dict:
     """
@@ -236,12 +241,12 @@ def run_tests(gaps: pd.DataFrame, crossed: pd.DataFrame, config: ComparisonConfi
     dict with keys: mwu_stat, mwu_p, mwu_r, n_study, n_life,
                      wilcoxon_stat, wilcoxon_p, wilcoxon_r, n_crossed
     """
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("STAGE 3: Statistical tests")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     study_gaps = gaps.loc[gaps["context"] == "Study", "gap"].values
-    life_gaps  = gaps.loc[gaps["context"] == "Life",  "gap"].values
+    life_gaps = gaps.loc[gaps["context"] == "Life", "gap"].values
 
     results = {"n_study": len(study_gaps), "n_life": len(life_gaps), "n_crossed": len(crossed)}
 
@@ -266,7 +271,7 @@ def run_tests(gaps: pd.DataFrame, crossed: pd.DataFrame, config: ComparisonConfi
 
             # Matched-pairs rank-biserial correlation: rank |diff|, split by sign.
             ranks = stats.rankdata(np.abs(nonzero))
-            w_plus  = ranks[nonzero > 0].sum()
+            w_plus = ranks[nonzero > 0].sum()
             w_minus = ranks[nonzero < 0].sum()
             r_wil = (w_plus - w_minus) / (w_plus + w_minus)
 
@@ -287,12 +292,14 @@ def run_tests(gaps: pd.DataFrame, crossed: pd.DataFrame, config: ComparisonConfi
 # STAGE 4 — FIGURES
 # =============================================================================
 
+
 def _bootstrap_ci(values: np.ndarray, config: ComparisonConfig):
     """Percentile bootstrap 95% CI for the mean. Returns (low, high) or (nan, nan)."""
     if len(values) < 2:
         return np.nan, np.nan
     res = stats.bootstrap(
-        (values,), np.mean,
+        (values,),
+        np.mean,
         confidence_level=1 - config.alpha,
         n_resamples=config.n_bootstrap,
         method="percentile",
@@ -307,13 +314,13 @@ def plot_interaction(mapped: pd.DataFrame, config: ComparisonConfig) -> None:
     cell, with a bootstrap 95% CI band.
     Saves: interaction_plot.png
     """
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("STAGE 4A: Interaction plot")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     contexts = ["Study", "Life"]
-    sources  = ["Algorithm", "Peer"]
-    colors   = {"Algorithm": "#e74c3c", "Peer": "#3498db"}
+    sources = ["Algorithm", "Peer"]
+    colors = {"Algorithm": "#e74c3c", "Peer": "#3498db"}
 
     fig, ax = plt.subplots(figsize=(6, 5))
 
@@ -331,9 +338,15 @@ def plot_interaction(mapped: pd.DataFrame, config: ComparisonConfig) -> None:
             his.append(hi - m if not np.isnan(hi) else 0)
 
         ax.errorbar(
-            contexts, means, yerr=[los, his],
-            marker="o", markersize=8, linewidth=2, capsize=5,
-            label=source, color=colors[source],
+            contexts,
+            means,
+            yerr=[los, his],
+            marker="o",
+            markersize=8,
+            linewidth=2,
+            capsize=5,
+            label=source,
+            color=colors[source],
         )
 
     ax.axhline(0, color="black", linewidth=0.8, linestyle="--", alpha=0.4)
@@ -346,7 +359,7 @@ def plot_interaction(mapped: pd.DataFrame, config: ComparisonConfig) -> None:
     config.output_dir.mkdir(parents=True, exist_ok=True)
     fig.savefig(config.output_dir / "interaction_plot.png", dpi=config.fig_dpi)
     plt.close(fig)
-    print(f"  Saved: interaction_plot.png")
+    print("  Saved: interaction_plot.png")
 
 
 def plot_gap_distribution(gaps: pd.DataFrame, test_results: dict, config: ComparisonConfig) -> None:
@@ -355,20 +368,33 @@ def plot_gap_distribution(gaps: pd.DataFrame, test_results: dict, config: Compar
     line at gap=0, Mann-Whitney result annotated.
     Saves: gap_distribution.png
     """
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("STAGE 4B: Gap distribution plot")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     order = ["Study", "Life"]
     fig, ax = plt.subplots(figsize=(6, 5))
 
     sns.violinplot(
-        data=gaps, x="context", y="gap", order=order,
-        ax=ax, palette=["#f39c12", "#8e44ad"], inner="quartile", cut=0,
+        data=gaps,
+        x="context",
+        y="gap",
+        order=order,
+        ax=ax,
+        palette=["#f39c12", "#8e44ad"],
+        inner="quartile",
+        cut=0,
     )
     sns.stripplot(
-        data=gaps, x="context", y="gap", order=order,
-        ax=ax, color="black", alpha=0.3, size=3, jitter=True,
+        data=gaps,
+        x="context",
+        y="gap",
+        order=order,
+        ax=ax,
+        color="black",
+        alpha=0.3,
+        size=3,
+        jitter=True,
     )
     ax.axhline(0, color="black", linewidth=0.8, linestyle="--", alpha=0.5)
     ax.set_title("Algorithm-minus-Peer sentiment gap, by context", fontsize=13, pad=12)
@@ -379,9 +405,12 @@ def plot_gap_distribution(gaps: pd.DataFrame, test_results: dict, config: Compar
         p, r = test_results["mwu_p"], test_results["mwu_r"]
         sig = "significant" if p < config.alpha else "not significant"
         ax.text(
-            0.5, 0.02,
+            0.5,
+            0.02,
             f"Mann-Whitney U: p={p:.4f} ({sig}), r={r:+.3f}",
-            transform=ax.transAxes, ha="center", fontsize=9,
+            transform=ax.transAxes,
+            ha="center",
+            fontsize=9,
             bbox=dict(boxstyle="round", facecolor="white", alpha=0.8),
         )
 
@@ -389,7 +418,7 @@ def plot_gap_distribution(gaps: pd.DataFrame, test_results: dict, config: Compar
     config.output_dir.mkdir(parents=True, exist_ok=True)
     fig.savefig(config.output_dir / "gap_distribution.png", dpi=config.fig_dpi)
     plt.close(fig)
-    print(f"  Saved: gap_distribution.png")
+    print("  Saved: gap_distribution.png")
 
 
 def plot_slopegraph(crossed: pd.DataFrame, test_results: dict, config: ComparisonConfig) -> None:
@@ -398,9 +427,9 @@ def plot_slopegraph(crossed: pd.DataFrame, test_results: dict, config: Compariso
     direction of change. Title states the crossed-subset N explicitly.
     Saves: participant_slopegraph.png
     """
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("STAGE 4C: Participant slopegraph")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     if len(crossed) == 0:
         print("  Skipped — no participants have data in all four conditions.")
@@ -416,8 +445,7 @@ def plot_slopegraph(crossed: pd.DataFrame, test_results: dict, config: Compariso
         ax.plot(x, [row["study_gap"], row["life_gap"]], color=color, alpha=0.4, linewidth=1.2)
 
     mean_study, mean_life = crossed["study_gap"].mean(), crossed["life_gap"].mean()
-    ax.plot(x, [mean_study, mean_life], color="black", linewidth=3, marker="o", markersize=8,
-            label="Mean")
+    ax.plot(x, [mean_study, mean_life], color="black", linewidth=3, marker="o", markersize=8, label="Mean")
 
     ax.axhline(0, color="gray", linewidth=0.8, linestyle="--", alpha=0.5)
     ax.set_xticks(x)
@@ -425,20 +453,23 @@ def plot_slopegraph(crossed: pd.DataFrame, test_results: dict, config: Compariso
     ax.set_ylabel("Gap (Algorithm − Peer sentiment)")
 
     n_crossed = len(crossed)
-    n_total = max(test_results.get("n_study", 0), test_results.get("n_life", 0))
+    max(test_results.get("n_study", 0), test_results.get("n_life", 0))
     ax.set_title(
-        f"Per-participant shift, Study -> Life\n"
-        f"(n={n_crossed} of participants with data in all four conditions)",
-        fontsize=12, pad=12,
+        f"Per-participant shift, Study -> Life\n(n={n_crossed} of participants with data in all four conditions)",
+        fontsize=12,
+        pad=12,
     )
 
     if test_results.get("wilcoxon_p") is not None:
         p, r = test_results["wilcoxon_p"], test_results["wilcoxon_r"]
         sig = "significant" if p < config.alpha else "not significant"
         ax.text(
-            0.5, -0.14,
+            0.5,
+            -0.14,
             f"Wilcoxon signed-rank: p={p:.4f} ({sig}), r={r:+.3f}",
-            transform=ax.transAxes, ha="center", fontsize=9,
+            transform=ax.transAxes,
+            ha="center",
+            fontsize=9,
         )
 
     ax.legend(loc="best")
@@ -446,25 +477,24 @@ def plot_slopegraph(crossed: pd.DataFrame, test_results: dict, config: Compariso
     config.output_dir.mkdir(parents=True, exist_ok=True)
     fig.savefig(config.output_dir / "participant_slopegraph.png", dpi=config.fig_dpi)
     plt.close(fig)
-    print(f"  Saved: participant_slopegraph.png")
+    print("  Saved: participant_slopegraph.png")
 
 
 # =============================================================================
 # STAGE 5 — REPORT
 # =============================================================================
 
+
 def write_report(test_results: dict, config: ComparisonConfig) -> None:
     """
     Plain-text summary: both test results, effect sizes, N breakdown.
     Saves: context_comparison_report.txt
     """
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("STAGE 5: Report")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
-    n_study, n_life, n_crossed = (
-        test_results["n_study"], test_results["n_life"], test_results["n_crossed"]
-    )
+    n_study, n_life, n_crossed = (test_results["n_study"], test_results["n_life"], test_results["n_crossed"])
     n_dropped = (n_study + n_life) - 2 * n_crossed  # each crossed participant counted once per context
 
     lines = [
@@ -538,6 +568,7 @@ def write_report(test_results: dict, config: ComparisonConfig) -> None:
 # MAIN
 # =============================================================================
 
+
 def main():
     print("\n" + "=" * 60)
     print("  CONTEXT x SOURCE COMPARISON")
@@ -545,20 +576,20 @@ def main():
     print(f"  Output    : {CONFIG.output_dir.resolve()}")
     print("=" * 60)
 
-    df       = load_profiles(CONFIG)
-    mapped   = map_conditions(df, CONFIG)
-    gaps     = compute_gaps(mapped)
-    crossed  = build_crossed_subset(gaps)
-    results  = run_tests(gaps, crossed, CONFIG)
+    df = load_profiles(CONFIG)
+    mapped = map_conditions(df, CONFIG)
+    gaps = compute_gaps(mapped)
+    crossed = build_crossed_subset(gaps)
+    results = run_tests(gaps, crossed, CONFIG)
 
     plot_interaction(mapped, CONFIG)
     plot_gap_distribution(gaps, results, CONFIG)
     plot_slopegraph(crossed, results, CONFIG)
     write_report(results, CONFIG)
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"  Done. All outputs -> {CONFIG.output_dir.resolve()}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
 
 if __name__ == "__main__":

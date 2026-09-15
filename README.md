@@ -70,8 +70,8 @@ Open `sent-analysis2.0.py` and update the two paths at the top of
 folder for this run:
 
 ```python
-data_dir   = _base_dir / "All-transcriptions9.13.26"   # <- your dataset folder
-output_dir = _base_dir / "2026-13-09-exports"           # <- new folder for this run's results
+data_dir = _base_dir / "All-transcriptions9.13.26"  # <- your dataset folder
+output_dir = _base_dir / "2026-13-09-exports"  # <- new folder for this run's results
 ```
 
 Then:
@@ -95,7 +95,7 @@ match the run you just produced:
 
 ```python
 profiles_csv: Path = _base_dir / "2026-13-09-exports" / "participant_profiles.csv"
-output_dir:   Path = _base_dir / "2026-13-09-exports" / "context_comparison"
+output_dir: Path = _base_dir / "2026-13-09-exports" / "context_comparison"
 ```
 
 Then:

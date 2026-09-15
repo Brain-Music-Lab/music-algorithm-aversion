@@ -1,15 +1,17 @@
-import os
 import csv
+import os
+import string
+
 import nltk
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
-import string
 
 # Download necessary NLTK data
-nltk.download('punkt_tab', quiet=True)
-nltk.download('stopwords', quiet=True)
-nltk.download('wordnet', quiet=True)
+nltk.download("punkt_tab", quiet=True)
+nltk.download("stopwords", quiet=True)
+nltk.download("wordnet", quiet=True)
+
 
 def process_text(text):
     """
@@ -26,11 +28,11 @@ def process_text(text):
     tokens = word_tokenize(text.lower())
 
     # Remove punctuation from each word
-    tokens = [''.join(c for c in word if c not in string.punctuation) for word in tokens]
+    tokens = ["".join(c for c in word if c not in string.punctuation) for word in tokens]
     tokens = [word for word in tokens if word]  # remove empty strings
 
     # Remove stopwords
-    stop_words = set(stopwords.words('english'))
+    stop_words = set(stopwords.words("english"))
     tokens = [word for word in tokens if word not in stop_words]
 
     # Lemmatize
@@ -44,9 +46,10 @@ def process_text(text):
     # Return as a list instead of a comma-separated string
     return tokens
 
+
 def main():
     # Directory containing the .txt files (change for your needs)
-    data_dir = '/Users/thedrive/Documents/ProgramProjects/algorithm-aversion/Cleaned text data/'
+    data_dir = "/Users/thedrive/Documents/ProgramProjects/algorithm-aversion/Cleaned text data/"
 
     # Lists to hold the row data
     data_with_labels = []
@@ -54,20 +57,20 @@ def main():
 
     # Process each .txt file
     for file in os.listdir(data_dir):
-        if file.endswith('.txt'):
+        if file.endswith(".txt"):
             file_path = os.path.join(data_dir, file)
             try:
-                with open(file_path, 'r', encoding='utf-8') as f:
+                with open(file_path, "r", encoding="utf-8") as f:
                     text = f.read()
 
                 # Process the text (now returns a list)
                 transaction = process_text(text)
 
                 # Determine label from filename
-                if '_algorithms' in file:
-                    label = 'ALGORITHM'
-                elif '_music_sharing' in file:
-                    label = 'SHARING'
+                if "_algorithms" in file:
+                    label = "ALGORITHM"
+                elif "_music_sharing" in file:
+                    label = "SHARING"
                 else:
                     print(f"Warning: Could not determine label for file {file}. Skipping.")
                     continue
@@ -79,8 +82,8 @@ def main():
 
                 # Append to our data lists
                 # For labelled data, insert the label at the beginning of the list
-                data_with_labels.append([label] + transaction)
-                
+                data_with_labels.append([label, *transaction])
+
                 # For unlabelled data, just use the transaction list
                 data_no_labels.append(transaction)
 
@@ -93,11 +96,11 @@ def main():
         return
 
     # Save to CSV files using the csv module
-    with open('cleaned_data_with_labels.csv', 'w', newline='', encoding='utf-8') as f:
+    with open("cleaned_data_with_labels.csv", "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerows(data_with_labels)
 
-    with open('cleaned_data_no_labels.csv', 'w', newline='', encoding='utf-8') as f:
+    with open("cleaned_data_no_labels.csv", "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerows(data_no_labels)
 
@@ -105,5 +108,6 @@ def main():
     print(f"Processed {len(data_no_labels)} documents.")
     print("Created 'cleaned_data_with_labels.csv' and 'cleaned_data_no_labels.csv'.")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

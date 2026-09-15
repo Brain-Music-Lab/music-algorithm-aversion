@@ -27,6 +27,7 @@ LEMMATIZER = WordNetLemmatizer()
 
 # ── Text cleaning ────────────────────────────────────────────────────────────
 
+
 def clean_doc(document: str) -> str:
     """
     Lower-case, strip punctuation, remove stop-words, and lemmatize every
@@ -46,14 +47,15 @@ def clean_doc(document: str) -> str:
     cleaned_tokens = [
         LEMMATIZER.lemmatize(token)
         for token in tokens
-        if token not in STOP_WORDS    # drop stop-words
-        and len(token) > 1            # drop single-character noise
+        if token not in STOP_WORDS  # drop stop-words
+        and len(token) > 1  # drop single-character noise
     ]
 
     return " ".join(cleaned_tokens)
 
 
 # ── Label inference ──────────────────────────────────────────────────────────
+
 
 def infer_label(filepath: str) -> str:
     """
@@ -69,19 +71,15 @@ def infer_label(filepath: str) -> str:
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 
+
 def main() -> None:
     # ── 1. Collect file paths ─────────────────────────────────────────────
     if not os.path.isdir(FOLDER_PATH):
         raise FileNotFoundError(
-            f"Data folder not found: '{FOLDER_PATH}'\n"
-            "Please check the path exists and is correct."
+            f"Data folder not found: '{FOLDER_PATH}'\nPlease check the path exists and is correct."
         )
 
-    all_files = sorted(
-        os.path.join(FOLDER_PATH, fname)
-        for fname in os.listdir(FOLDER_PATH)
-        if fname.endswith(".txt")
-    )
+    all_files = sorted(os.path.join(FOLDER_PATH, fname) for fname in os.listdir(FOLDER_PATH) if fname.endswith(".txt"))
 
     if not all_files:
         raise ValueError(f"No .txt files found in '{FOLDER_PATH}'")
@@ -102,9 +100,9 @@ def main() -> None:
     # ── 3. Vectorize ──────────────────────────────────────────────────────
     cv = CountVectorizer(
         input="content",
-        stop_words="english",           # sklearn built-in list as extra safety net
-        min_df=1,                       # keep tokens appearing in at least 1 doc
-        token_pattern=r"[a-zA-Z]{2,}", # letters only, length >= 2
+        stop_words="english",  # sklearn built-in list as extra safety net
+        min_df=1,  # keep tokens appearing in at least 1 doc
+        token_pattern=r"[a-zA-Z]{2,}",  # letters only, length >= 2
     )
 
     matrix = cv.fit_transform(documents).toarray()
