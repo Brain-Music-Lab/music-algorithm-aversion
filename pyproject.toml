@@ -1,0 +1,71 @@
+[project]
+name = "AlgorithmAversion"
+dependencies = [
+    "matplotlib==3.11.2",
+    "nltk==3.10.3",
+    "numpy==2.5.3",
+    "pandas==3.0.5",
+    "scikit_learn==1.9.1",
+    "scipy==1.18.1",
+    "seaborn==0.13.2",
+    "spacy==3.8.16"
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+DL = [
+    "torch==2.14.0",
+    "transformers==5.17.0"
+]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["algorithmaversion*"]
+
+[tool.setuptools.dynamic]
+version = { attr = "algorithmaversion.__version__" }
+
+[tool.ruff]
+line-length=119
+exclude = [
+    "tests",
+    "test_venv",
+    "scratch",
+    "R"
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "S", "D", "W", "I", "PYI", "Q", "B", "SIM", "RUF", "TC", "NPY"]
+ignore = [
+    "D203",  # Don't need blank line before docstring
+    "D204",  # Don't need blank line after docstring either
+    "D211",  # Blank line before class
+    "D212",  # Multi-line docstring summary first line start
+    "D400",  # Relax on the first line punctuation
+    "D413",  # Blank line at end of docstring is unecessary
+    "D415",  # Relax on the first line punctuation
+    "SIM108",  # Forced ternary operators are not the answer
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.per-file-ignores]
+"**/__init__.py" = ["F401"]
+
+[tool.numpydoc_validation]
+checks = [
+    "all",
+    "ES01",  # No extended summary
+    "EX01",  # Don't enforce 'Examples section
+    "SA01",  # Don't enforce 'See Also' section
+    "SS03",  # Relax on the first line punctuation
+    "PR09",  # Descriptions should finish with a period, but not totally important
+    "RT05",  # Relax on punctuation on return descriptions
+    "SS02"   # Don't need capital letters enforced in module summaries
+]
+
+exclude_files = ["tests/.*"]

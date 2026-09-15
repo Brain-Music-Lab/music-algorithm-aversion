@@ -8,3 +8,6 @@ CleanedTranscription
 All-transcriptions*
 *exports/
 *.zip
+requirements.txt
+dist/
+*.egg-info/
