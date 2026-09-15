@@ -1,0 +1,21 @@
+============================================================
+KRUSKAL-WALLIS TEST  (overall — any difference across themes?)
+============================================================
+H statistic  : 27.5901
+p-value      : 0.0000
+Significant  : YES ✓ (α = 0.05)
+Themes tested: ['Algorithms', 'Computer Music', 'Music Sharing', 'Peer Music']
+
+============================================================
+PAIRWISE MANN-WHITNEY U TESTS  (which themes differ?)
+Bonferroni-corrected α = 0.05 / 6 = 0.0083
+============================================================
+  Algorithms                   vs Computer Music               | p=0.7365  r=-0.011
+  Algorithms                   vs Music Sharing                | p=0.0001  r=+0.106  *  ← significant
+  Algorithms                   vs Peer Music                   | p=0.0177  r=+0.076
+  Computer Music               vs Music Sharing                | p=0.0000  r=+0.117  *  ← significant
+  Computer Music               vs Peer Music                   | p=0.0081  r=+0.087  *  ← significant
+  Music Sharing                vs Peer Music                   | p=0.2638  r=-0.030
+
+* = significant after Bonferroni correction
+Effect size |r|:  <0.1 negligible | 0.1–0.3 small | 0.3–0.5 medium | >0.5 large
