@@ -1,1 +1,7 @@
-data
+.vscode
+test_files/
+*.csv
+.DS_Store
+__pycache__
+data/
+CleanedTranscription
