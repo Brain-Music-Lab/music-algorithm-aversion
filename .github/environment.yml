@@ -1,6 +1,7 @@
 name: test
 channels:
   - conda-forge
+  - default
 dependencies:
   - pip
   - matplotlib>=3.11.1
@@ -11,3 +12,4 @@ dependencies:
   - scipy>=1.18.1
   - seaborn>=0.13.2
   - spacy>=3.8.15
+  - pytest
