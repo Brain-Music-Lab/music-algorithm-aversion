@@ -7,10 +7,10 @@ from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
 
-# Download necessary NLTK data
-nltk.download("punkt_tab", quiet=True)
-nltk.download("stopwords", quiet=True)
-nltk.download("wordnet", quiet=True)
+# # Download necessary NLTK data
+# nltk.download("punkt_tab", quiet=True)
+# nltk.download("stopwords", quiet=True)
+# nltk.download("wordnet", quiet=True)
 
 
 def process_text(text):
@@ -49,7 +49,7 @@ def process_text(text):
 
 def main():
     # Directory containing the .txt files (change for your needs)
-    data_dir = "/Users/thedrive/Documents/ProgramProjects/algorithm-aversion/Cleaned text data/"
+    data_dir = "./interviews/"
 
     # Lists to hold the row data
     data_with_labels = []

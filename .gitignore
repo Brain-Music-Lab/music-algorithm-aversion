@@ -4,6 +4,7 @@ test_files/
 .DS_Store
 __pycache__
 data/
+interviews/
 CleanedTranscription
 All-transcriptions*
 *exports/

@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  test:
+    name: Python 3.12
+    runs-on: ubuntu-latest
+    env:
+      envfile: ".github/environment.yml"
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Setup Environment via Conda
+      uses: conda-incubator/setup-miniconda@v4
+      with:
+        activate-environment: test
+        environment-file: ${{ env.envfile }}
+        python-version: "3.12"
+
+    - name: Install local package
+      shell: bash -l {0}
+      run: pip install -e .
+
+    - name: Run tests
+      shell: bash -l {0}
+      run: pytest

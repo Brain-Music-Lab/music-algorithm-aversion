@@ -30,6 +30,8 @@ import pandas as pd
 import seaborn as sns
 from scipy import stats
 
+import os
+
 # =============================================================================
 # CONFIGURATION
 # =============================================================================
@@ -43,9 +45,9 @@ class ComparisonConfig:
     # absolute path — portable across machines/usernames, and immune to
     # working-directory differences. Only the exports folder name needs
     # updating for a new run.
-    _base_dir = Path(__file__).resolve().parent
-    profiles_csv: Path = _base_dir / "2026-13-09-exports" / "participant_profiles.csv"
-    output_dir: Path = _base_dir / "2026-13-09-exports" / "context_comparison"
+    _base_dir = "./interviews"
+    profiles_csv = os.path.join(_base_dir, "2026-13-09-exports", "participant_profiles.csv")
+    output_dir = os.path.join(_base_dir, "2026-13-09-exports", "context_comparison")
 
     # Maps each `theme` value (topic folder name) onto the 2x2 design.
     # Keys MUST exactly match the theme strings in participant_profiles.csv —
@@ -86,7 +88,7 @@ def load_profiles(config: ComparisonConfig) -> pd.DataFrame:
     print(f"{'=' * 60}")
 
     path = config.profiles_csv
-    if not path.exists():
+    if not Path(path).exists():
         raise FileNotFoundError(
             f"'{path}' not found.\n"
             f"Set CONFIG.profiles_csv to the participant_profiles.csv from "
@@ -572,8 +574,8 @@ def write_report(test_results: dict, config: ComparisonConfig) -> None:
 def main():
     print("\n" + "=" * 60)
     print("  CONTEXT x SOURCE COMPARISON")
-    print(f"  Profiles  : {CONFIG.profiles_csv.resolve()}")
-    print(f"  Output    : {CONFIG.output_dir.resolve()}")
+    print(f"  Profiles  : {CONFIG.profiles_csv}")
+    print(f"  Output    : {CONFIG.output_dir}")
     print("=" * 60)
 
     df = load_profiles(CONFIG)
@@ -588,7 +590,7 @@ def main():
     write_report(results, CONFIG)
 
     print(f"\n{'=' * 60}")
-    print(f"  Done. All outputs -> {CONFIG.output_dir.resolve()}")
+    print(f"  Done. All outputs -> {CONFIG.output_dir}")
     print(f"{'=' * 60}\n")
 
 

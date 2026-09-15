@@ -15,7 +15,7 @@ nltk.download("omw-1.4", quiet=True)
 
 # ── Constants ────────────────────────────────────────────────────────────────
 
-FOLDER_PATH = "/Users/Hrishikesh/Documents/music-algorithm-aversion/Cleaned_Data"
+FOLDER_PATH = "./interviews"
 
 # Files whose names contain any of these keywords are labelled ALGORITHM;
 # everything else is labelled SHARING.

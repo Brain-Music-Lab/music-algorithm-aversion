@@ -17,6 +17,9 @@ DL = [
     "torch==2.14.0",
     "transformers==5.17.0"
 ]
+test = [
+    "pytest"
+]
 
 [build-system]
 requires = ["setuptools"]

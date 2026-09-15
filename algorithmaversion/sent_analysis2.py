@@ -36,6 +36,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 from scipy import stats
+import os
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 
@@ -53,9 +54,9 @@ class PipelineConfig:
     # directory — so it runs the same whether launched from a terminal, the
     # VS Code Run button, or any other cwd. Only the two folder names below
     # need updating for a new run; leave _base_dir alone.
-    _base_dir = Path(__file__).resolve().parent
-    data_dir = _base_dir / "All-transcriptions9.13.26"  # Root folder containing your topic subfolders
-    output_dir = _base_dir / "2026-13-09-exports"  # Where all CSV, image, and report files go
+    _base_dir = "./interviews"
+    data_dir = os.path.join(_base_dir, "All-transcriptions9.13.26")  # Root folder containing your topic subfolders
+    output_dir = os.path.join(_base_dir, "2026-13-09-exports")  # Where all CSV, image, and report files go
 
     # ── Stage 2: Sentence segmentation ───────────────────────────────────────
     # "spacy"  → recommended. Handles informal speech, ellipses, and missing
@@ -144,7 +145,7 @@ def ingest_data(config: PipelineConfig) -> pd.DataFrame:
     print(f"{'=' * 60}")
 
     data_path = config.data_dir
-    if not data_path.exists():
+    if not Path(data_path).exists():
         raise FileNotFoundError(
             f"Data directory '{data_path}' not found.\n"
             f"Set CONFIG.data_dir to the folder containing your topic subfolders."
@@ -154,7 +155,7 @@ def ingest_data(config: PipelineConfig) -> pd.DataFrame:
     if not topic_dirs:
         raise ValueError(f"No subdirectories found in '{data_path}'.\nEach topic must have its own subfolder.")
 
-    print(f"Root: {data_path.resolve()}")
+    print(f"Root: {data_path}")
     print(f"Topic folders found: {len(topic_dirs)}")
 
     records = []
@@ -692,7 +693,7 @@ def save_outputs(
     participant_agg.to_csv(out / "participant_profiles.csv", index=False)
 
     print(f"\n{'=' * 60}")
-    print(f"STAGE 5A: CSV outputs → {out.resolve()}")
+    print(f"STAGE 5A: CSV outputs → {out}")
     print(f"{'=' * 60}")
     print(f"  sentences_scored.csv      ({len(df_sentences)} rows)")
     print(f"  theme_aggregates.csv      ({len(theme_agg)} rows)")
@@ -1038,7 +1039,7 @@ def main():
     print("  SENTIMENT ANALYSIS PIPELINE")
     print(f"  Scorer    : {CONFIG.scorer.upper()}")
     print(f"  Segmenter : {CONFIG.segmenter.upper()}")
-    print(f"  Data dir  : {CONFIG.data_dir.resolve()}")
+    print(f"  Data dir  : {CONFIG.data_dir}")
     print("=" * 60)
 
     df_raw = ingest_data(CONFIG)
@@ -1054,7 +1055,7 @@ def main():
 
     print(f"\n{'=' * 60}")
     print("  Pipeline complete.")
-    print(f"  All outputs → {CONFIG.output_dir.resolve()}")
+    print(f"  All outputs → {CONFIG.output_dir}")
     print(f"{'=' * 60}\n")
 
 

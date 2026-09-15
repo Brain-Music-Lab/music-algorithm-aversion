@@ -1,0 +1,13 @@
+name: test
+channels:
+  - conda-forge
+dependencies:
+  - pip
+  - matplotlib>=3.11.2
+  - nltk>=3.10.3
+  - numpy>=2.5.3
+  - pandas>=3.0.5
+  - scikit_learn>=1.9.1
+  - scipy>=1.18.1
+  - seaborn>=0.13.2
+  - spacy>=3.8.16
